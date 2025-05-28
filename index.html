@@ -2,39 +2,48 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>批量打开网址工具</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         textarea {
-            width: 600px;
+            width: 100%;
             height: 300px;
-            margin: 10px;
+            margin: 10px 0;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
         }
         button {
             background-color: #4CAF50;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            min-width: 120px;
         }
         #clear {
-         background-color: #f44336; /* 红色背景 */
-          }
-
+            background-color: #f44336;
+        }
         button:hover {
-            background-color: #45a049;
+            opacity: 0.9;
         }
         .instructions {
             background-color: #f8f9fa;
@@ -42,29 +51,37 @@
             border-radius: 4px;
             margin-bottom: 20px;
         }
+        h1 {
+            text-align: center;
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
-
-<textarea id="urls" placeholder="请在此处粘贴多个网址，每行一个网址...
+    <h1>批量打开网址工具</h1>
+    
+    <textarea id="urls" placeholder="请在此处粘贴多个网址，每行一个网址...
 例如：
 https://www.baidu.com
 https://www.google.com
 https://www.github.com"></textarea>
-    <div>
+    
+    <div class="button-container">
         <button id="openAll">批量打开</button>
         <button id="clear">清空</button>
     </div>
-        <h1>批量打开网址工具</h1>
+    
     <div class="instructions">
         <h3>使用说明：</h3>
         <ol>
-            <li>在下方文本框中粘贴多个网址（每行一个网址）</li>
+            <li>在文本框中粘贴多个网址（每行一个网址）</li>
+            <li>最多支持26个网址</li>
             <li>点击"批量打开"按钮</li>
             <li>浏览器会逐个打开这些网址（可能会弹出弹窗警告）</li>
             <li>请允许弹出窗口以正常使用</li>
         </ol>
     </div>
+    
     <script>
         document.getElementById('openAll').addEventListener('click', function() {
             const urlsText = document.getElementById('urls').value.trim();
@@ -77,6 +94,12 @@ https://www.github.com"></textarea>
             
             if (urls.length === 0) {
                 alert('没有检测到有效的网址');
+                return;
+            }
+            
+            // 检查网址数量是否超过26个
+            if (urls.length > 26) {
+                alert('最多只能批量打开26个网址，请减少网址数量');
                 return;
             }
             
