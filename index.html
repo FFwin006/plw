@@ -96,10 +96,10 @@ https://www.github.com
             }
             
             // 检查网址数量是否超过26个
-            if (urls.length > 26) {
-                alert('最多只能批量打开26个网址，请减少网址数量');
-                return;
-            }
+          if (urls.length > 26) {
+             alert(`最多只能批量打开${urls.length}/26个网址，请减少网址数量`);
+            return;
+          }
             
             // 确认是否真的要打开多个网址
             if (confirm(`即将打开 ${urls.length} 个网址，确定继续吗？`)) {
