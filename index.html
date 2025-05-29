@@ -17,7 +17,7 @@
             min-height: 100vh;
         }
         .container {
-            max-width: 800px;
+            width: 100%;
             margin: 0 auto;
             background: white;
             padding: 30px;
@@ -187,6 +187,26 @@
             border-radius: 4px;
             margin-bottom: 20px;
         }
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+  /* 其他手机专用样式 */
+}
+
+/* 中等屏幕设备（平板，769px到992px） */
+@media (min-width: 769px) and (max-width: 992px) {
+  .container {
+    max-width: 750px;
+  }
+}
+
+/* 大屏幕设备（桌面，993px及以上） */
+@media (min-width: 993px) {
+  .container {
+    max-width: 1200px;
+  }
+}
 
         /* 页脚样式 */
         footer {
