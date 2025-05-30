@@ -224,30 +224,57 @@
             background-color: #fff3cd;
             color: #856404;
         }
+        .url-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .url-link {
+            color: #0066cc;
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .url-link:hover {
+            text-decoration: underline;
+        }
+        .url-time {
+            font-size: 12px;
+            color: #666;
+        }
         .url-speed {
             font-style: italic;
             color: #666;
+            text-align: right;
+            min-width: 120px;
         }
-@media (max-width: 768px) {
-  .container {
-    padding: 10px;
-  }
-  /* 其他手机专用样式 */
-}
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .url-result-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .url-speed {
+                text-align: left;
+                width: 100%;
+            }
+        }
 
-/* 中等屏幕设备（平板，769px到992px） */
-@media (min-width: 769px) and (max-width: 992px) {
-  .container {
-    max-width: 750px;
-  }
-}
+        /* 中等屏幕设备（平板，769px到992px） */
+        @media (min-width: 769px) and (max-width: 992px) {
+            .container {
+                max-width: 750px;
+            }
+        }
 
-/* 大屏幕设备（桌面，993px及以上） */
-@media (min-width: 993px) {
-  .container {
-    max-width: 1200px;
-  }
-}
+        /* 大屏幕设备（桌面，993px及以上） */
+        @media (min-width: 993px) {
+            .container {
+                max-width: 1200px;
+            }
+        }
 
         /* 页脚样式 */
         footer {
@@ -664,12 +691,16 @@ https://www.github.com
                     // 创建结果项
                     const resultItem = document.createElement('div');
                     resultItem.className = 'url-result-item';
+                    
+                    const timestamp = new Date().toLocaleTimeString();
+                    
                     resultItem.innerHTML = `
-                        <div>
-                            <strong>${finalUrl}</strong>
+                        <div class="url-info">
+                            <a href="${finalUrl}" class="url-link" target="_blank">${finalUrl}</a>
+                            <div class="url-time">检测时间: ${timestamp}</div>
                             <span class="url-status status-pending">检测中...</span>
                         </div>
-                        <div class="url-speed"></div>
+                        <div class="url-speed">-</div>
                     `;
                     resultsContainer.appendChild(resultItem);
                     
@@ -694,7 +725,7 @@ https://www.github.com
                     const endTime = new Date().getTime();
                     const duration = endTime - startTime;
                     
-                    statusElement.textContent = '可访问';
+                    statusElement.textContent = '可访问 (状态: ' + (response.status || '200') + ')';
                     statusElement.className = 'url-status status-success';
                     speedElement.textContent = `响应时间: ${duration}ms`;
                 })
