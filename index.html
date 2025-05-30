@@ -288,6 +288,7 @@
             font-weight: bold;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
         #url-test-frame {
             width: 100%;
@@ -304,6 +305,49 @@
             color: #666;
             margin-top: 5px;
         }
+        .error-message {
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .control-button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .reload-button {
+            background-color: #3498db;
+            color: white;
+        }
+        .next-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #url-test-history {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            display: none;
+        }
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .view-history-button {
+            background-color: #9c27b0;
+            color: white;
+            margin-top: 10px;
+        }
 
         @media (max-width: 768px) {
             .container {
@@ -319,7 +363,7 @@
                 width: 100%;
             }
             #url-test-frame-container {
-                height: 400px;
+                height: 98%;
             }
         }
 
@@ -465,8 +509,21 @@ https://www.github.com
                     <span id="url-test-current-url">等待开始...</span>
                     <span id="url-test-status" class="status-pending">等待中</span>
                 </div>
+                <div id="url-test-error" class="error-message" style="display: none;"></div>
+                <div id="url-test-controls" class="test-controls" style="display: none;">
+                    <button id="url-test-reload" class="control-button reload-button">重新加载</button>
+                    <button id="url-test-next" class="control-button next-button">下一个网址</button>
+                </div>
                 <iframe id="url-test-frame"></iframe>
             </div>
+
+            <div id="url-test-history" style="display: none;">
+                <h3>检测历史记录</h3>
+                <div id="url-test-history-content"></div>
+                <button id="url-test-close-history" class="control-button view-history-button" style="margin-top: 10px;">关闭历史记录</button>
+            </div>
+
+            <button id="url-test-view-history" class="control-button view-history-button" style="display: none; margin-top: 10px;">查看检测历史</button>
 
             <div class="instructions">
                 <h3>使用说明：</h3>
@@ -474,8 +531,9 @@ https://www.github.com
                     <li>在文本框中粘贴多个网址（每行一个网址）</li>
                     <li>支持最多300个网址</li>
                     <li>点击"开始检测"按钮</li>
-                    <li>系统将逐个打开网址，每个网址显示20秒</li>
+                    <li>系统将逐个打开网址，每个网址显示10秒</li>
                     <li>可以随时停止检测</li>
+                    <li>检测完成后可以查看历史记录</li>
                 </ol>
             </div>
         </div>
@@ -580,45 +638,55 @@ https://www.github.com
             return ip.includes(':');
         }
 
-        // 获取用户当前IP信息
+        // 获取用户当前IP信息 - 优化版本
         function getCurrentIPInfo() {
             showLoading();
             clearResults();
             
-            // 使用更可靠的IP API
-            fetch('https://ipapi.co/json/')
-                .then(response => {
-                    if (!response.ok) throw new Error('网络响应不正常');
-                    return response.json();
-                })
-                .then(data => {
-                    // 填入输入框
-                    document.getElementById('ip-input').value = data.ip;
-                    // 直接使用返回的完整数据
-                    displayIPInfo({
-                        query: data.ip,
-                        country: data.country_name,
-                        countryCode: data.country_code,
-                        region: data.region_code,
-                        regionName: data.region,
-                        city: data.city,
-                        isp: data.org,
-                        lat: data.latitude,
-                        lon: data.longitude
-                    });
+            // 尝试多个API，按优先级排序
+            const apiEndpoints = [
+                'https://ipapi.co/json/',
+                'https://ipinfo.io/json?token=8a0a475a5a0b4c',
+                'https://api.ipgeolocation.io/ipgeo?apiKey=72a4b4b6b2a84f0e8e8f8c8f8c8f8c8f',
+                'https://ipwho.is/'
+            ];
+            
+            let currentApiIndex = 0;
+            
+            function tryNextApi() {
+                if (currentApiIndex >= apiEndpoints.length) {
+                    showError('所有IP API服务均不可用，请稍后再试');
                     hideLoading();
-                })
-                .catch(error => {
-                    // 备用API
-                    fetch('https://ipinfo.io/json?token=8a0a475a5a0b4c')
-                        .then(response => {
-                            if (!response.ok) throw new Error('网络响应不正常');
-                            return response.json();
-                        })
-                        .then(data => {
-                            document.getElementById('ip-input').value = data.ip;
+                    return;
+                }
+                
+                const apiUrl = apiEndpoints[currentApiIndex];
+                currentApiIndex++;
+                
+                fetch(apiUrl)
+                    .then(response => {
+                        if (!response.ok) throw new Error('网络响应不正常');
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 不同API返回的数据结构不同，需要统一处理
+                        let ipInfo = {};
+                        
+                        if (apiUrl.includes('ipapi.co')) {
+                            ipInfo = {
+                                query: data.ip,
+                                country: data.country_name,
+                                countryCode: data.country_code,
+                                region: data.region_code,
+                                regionName: data.region,
+                                city: data.city,
+                                isp: data.org,
+                                lat: data.latitude,
+                                lon: data.longitude
+                            };
+                        } else if (apiUrl.includes('ipinfo.io')) {
                             const loc = data.loc ? data.loc.split(',') : [];
-                            displayIPInfo({
+                            ipInfo = {
                                 query: data.ip,
                                 country: data.country,
                                 countryCode: data.country,
@@ -628,53 +696,109 @@ https://www.github.com
                                 isp: data.org,
                                 lat: loc[0],
                                 lon: loc[1]
-                            });
-                            hideLoading();
-                        })
-                        .catch(error => {
-                            showError('获取当前IP失败: ' + error.message);
-                            hideLoading();
-                        });
-                });
+                            };
+                        } else if (apiUrl.includes('ipgeolocation.io')) {
+                            ipInfo = {
+                                query: data.ip,
+                                country: data.country_name,
+                                countryCode: data.country_code2,
+                                region: data.state_prov,
+                                regionName: data.state_prov,
+                                city: data.city,
+                                isp: data.isp,
+                                lat: data.latitude,
+                                lon: data.longitude
+                            };
+                        } else if (apiUrl.includes('ipwho.is')) {
+                            ipInfo = {
+                                query: data.ip,
+                                country: data.country,
+                                countryCode: data.country_code,
+                                region: data.region_code,
+                                regionName: data.region,
+                                city: data.city,
+                                isp: data.connection.isp,
+                                lat: data.latitude,
+                                lon: data.longitude
+                            };
+                        }
+                        
+                        // 填入输入框
+                        document.getElementById('ip-input').value = ipInfo.query;
+                        displayIPInfo(ipInfo);
+                        hideLoading();
+                    })
+                    .catch(error => {
+                        // 尝试下一个API
+                        tryNextApi();
+                    });
+            }
+            
+            // 开始尝试第一个API
+            tryNextApi();
         }
 
-        // 查询IP信息 - 使用更准确的API
+        // 查询IP信息 - 优化版本
         function queryIPInfo(ip) {
             showLoading();
             clearResults();
             
-            // 使用ipapi.co的付费API端点（示例，实际使用时需要替换为有效API密钥）
-            fetch(`https://ipapi.co/${ip}/json/`)
-                .then(response => {
-                    if (!response.ok) throw new Error('API请求失败');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.error) throw new Error(data.reason || 'IP查询失败');
-                    
-                    displayIPInfo({
-                        query: data.ip,
-                        country: data.country_name,
-                        countryCode: data.country_code,
-                        region: data.region_code,
-                        regionName: data.region,
-                        city: data.city,
-                        isp: data.org,
-                        lat: data.latitude,
-                        lon: data.longitude
-                    });
+            // 验证IP格式
+            if (!isValidIP(ip)) {
+                showError('请输入有效的IPv4或IPv6地址');
+                hideLoading();
+                return;
+            }
+            
+            // 使用多个API端点，按优先级排序
+            const apiEndpoints = [
+                `https://ipapi.co/${ip}/json/`,
+                `https://ipinfo.io/${ip}?token=8a0a475a5a0b4c`,
+                `https://api.ipgeolocation.io/ipgeo?apiKey=72a4b4b6b2a84f0e8e8f8c8f8c8f8c8f&ip=${ip}`,
+                `https://ipwho.is/${ip}`
+            ];
+            
+            let currentApiIndex = 0;
+            
+            function tryNextApi() {
+                if (currentApiIndex >= apiEndpoints.length) {
+                    showError('所有IP API服务均不可用，请稍后再试');
                     hideLoading();
-                })
-                .catch(error => {
-                    // 备用API - ipinfo.io
-                    fetch(`https://ipinfo.io/${ip}?token=8a0a475a5a0b4c`)
-                        .then(response => {
-                            if (!response.ok) throw new Error('API请求失败');
-                            return response.json();
-                        })
-                        .then(data => {
+                    return;
+                }
+                
+                const apiUrl = apiEndpoints[currentApiIndex];
+                currentApiIndex++;
+                
+                fetch(apiUrl)
+                    .then(response => {
+                        if (!response.ok) throw new Error('API请求失败');
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 检查API返回的错误
+                        if (data.error || (data.success !== undefined && !data.success)) {
+                            throw new Error(data.reason || 'IP查询失败');
+                        }
+                        
+                        // 不同API返回的数据结构不同，需要统一处理
+                        let ipInfo = {};
+                        
+                        if (apiUrl.includes('ipapi.co')) {
+                            ipInfo = {
+                                query: data.ip,
+                                country: data.country_name,
+                                countryCode: data.country_code,
+                                region: data.region_code,
+                                regionName: data.region,
+                                city: data.city,
+                                isp: data.org,
+                                lat: data.latitude,
+                                lon: data.longitude
+                            };
+                        } else if (apiUrl.includes('ipinfo.io')) {
                             const loc = data.loc ? data.loc.split(',') : [];
-                            displayIPInfo({
+                            ipInfo = {
                                 query: data.ip,
                                 country: data.country,
                                 countryCode: data.country,
@@ -684,14 +808,56 @@ https://www.github.com
                                 isp: data.org,
                                 lat: loc[0],
                                 lon: loc[1]
-                            });
-                            hideLoading();
-                        })
-                        .catch(error => {
-                            showError('IP查询失败: ' + error.message);
-                            hideLoading();
-                        });
-                });
+                            };
+                        } else if (apiUrl.includes('ipgeolocation.io')) {
+                            ipInfo = {
+                                query: data.ip,
+                                country: data.country_name,
+                                countryCode: data.country_code2,
+                                region: data.state_prov,
+                                regionName: data.state_prov,
+                                city: data.city,
+                                isp: data.isp,
+                                lat: data.latitude,
+                                lon: data.longitude
+                            };
+                        } else if (apiUrl.includes('ipwho.is')) {
+                            ipInfo = {
+                                query: data.ip,
+                                country: data.country,
+                                countryCode: data.country_code,
+                                region: data.region_code,
+                                regionName: data.region,
+                                city: data.city,
+                                isp: data.connection.isp,
+                                lat: data.latitude,
+                                lon: data.longitude
+                            };
+                        }
+                        
+                        displayIPInfo(ipInfo);
+                        hideLoading();
+                    })
+                    .catch(error => {
+                        // 尝试下一个API
+                        tryNextApi();
+                    });
+            }
+            
+            // 开始尝试第一个API
+            tryNextApi();
+        }
+
+        // 验证IP地址格式
+        function isValidIP(ip) {
+            // IPv4正则
+            const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            
+            // IPv6正则 (简化版)
+            const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+            const ipv6ShortRegex = /^(([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4})?::(([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4})?$/;
+            
+            return ipv4Regex.test(ip) || ipv6Regex.test(ip) || ipv6ShortRegex.test(ip);
         }
 
         // 格式化时间为 YYYY-MM-DD HH:MM:SS
@@ -855,6 +1021,7 @@ https://www.github.com
             let currentTestIndex = 0;
             let urlTestList = [];
             let urlTestTimeout;
+            let urlTestHistory = [];
             
             // 开始检测
             document.getElementById('url-test-start').addEventListener('click', function() {
@@ -888,7 +1055,12 @@ https://www.github.com
                 document.getElementById('url-test-current-url').textContent = '等待开始...';
                 document.getElementById('url-test-status').textContent = '等待中';
                 document.getElementById('url-test-status').className = 'status-pending';
+                document.getElementById('url-test-error').style.display = 'none';
+                document.getElementById('url-test-controls').style.display = 'none';
+                document.getElementById('url-test-view-history').style.display = 'none';
                 
+                // 清空历史记录
+                urlTestHistory = [];
                 currentTestIndex = 0;
                 startNextUrlTest();
             });
@@ -899,6 +1071,10 @@ https://www.github.com
                 document.getElementById('url-test-count').textContent = `检测已停止 (已完成 ${currentTestIndex}/${urlTestList.length})`;
                 document.getElementById('url-test-status').textContent = '已停止';
                 document.getElementById('url-test-status').className = 'status-error';
+                
+                if (currentTestIndex > 0) {
+                    document.getElementById('url-test-view-history').style.display = 'block';
+                }
             });
             
             // 清空输入
@@ -906,18 +1082,34 @@ https://www.github.com
                 document.getElementById('url-test-input').value = '';
                 document.getElementById('url-test-progress-container').style.display = 'none';
                 document.getElementById('url-test-frame-container').style.display = 'none';
+                document.getElementById('url-test-history').style.display = 'none';
+                document.getElementById('url-test-view-history').style.display = 'none';
                 clearTimeout(urlTestTimeout);
             });
             
-            // 开始下一个网址测试
-            function startNextUrlTest() {
-                if (currentTestIndex >= urlTestList.length) {
-                    document.getElementById('url-test-count').textContent = `所有网址检测完成 (共 ${urlTestList.length} 个)`;
-                    document.getElementById('url-test-status').textContent = '已完成';
-                    document.getElementById('url-test-status').className = 'status-success';
-                    document.getElementById('url-test-current-url').textContent = '检测完成';
-                    return;
-                }
+            // 重新加载当前网址
+            document.getElementById('url-test-reload').addEventListener('click', function() {
+                startCurrentUrlTest();
+            });
+            
+            // 下一个网址
+            document.getElementById('url-test-next').addEventListener('click', function() {
+                proceedToNextTest();
+            });
+            
+            // 查看历史记录
+            document.getElementById('url-test-view-history').addEventListener('click', function() {
+                displayTestHistory();
+            });
+            
+            // 关闭历史记录
+            document.getElementById('url-test-close-history').addEventListener('click', function() {
+                document.getElementById('url-test-history').style.display = 'none';
+            });
+            
+            // 开始当前网址测试
+            function startCurrentUrlTest() {
+                if (currentTestIndex >= urlTestList.length) return;
                 
                 const url = urlTestList[currentTestIndex];
                 const progress = Math.round((currentTestIndex / urlTestList.length) * 100);
@@ -928,6 +1120,8 @@ https://www.github.com
                 document.getElementById('url-test-current-url').textContent = url;
                 document.getElementById('url-test-status').textContent = '加载中...';
                 document.getElementById('url-test-status').className = 'status-pending';
+                document.getElementById('url-test-error').style.display = 'none';
+                document.getElementById('url-test-controls').style.display = 'none';
                 
                 // 加载iframe
                 const frame = document.getElementById('url-test-frame');
@@ -935,35 +1129,107 @@ https://www.github.com
                 
                 // 设置加载超时（10秒）
                 urlTestTimeout = setTimeout(() => {
-                    document.getElementById('url-test-status').textContent = '加载超时';
+                    const errorMsg = '加载超时 (10秒)';
+                    document.getElementById('url-test-status').textContent = '加载失败';
                     document.getElementById('url-test-status').className = 'status-error';
-                    proceedToNextTest();
+                    document.getElementById('url-test-error').textContent = errorMsg;
+                    document.getElementById('url-test-error').style.display = 'block';
+                    document.getElementById('url-test-controls').style.display = 'flex';
+                    
+                    // 记录结果
+                    urlTestHistory.push({
+                        url: url,
+                        status: '失败',
+                        message: errorMsg,
+                        timestamp: formatDateTime(new Date())
+                    });
                 }, 10000);
                 
                 // 监听iframe加载完成
                 frame.onload = function() {
                     clearTimeout(urlTestTimeout);
-                    document.getElementById('url-test-status').textContent = '加载完成';
+                    document.getElementById('url-test-status').textContent = '加载成功';
                     document.getElementById('url-test-status').className = 'status-success';
+                    document.getElementById('url-test-controls').style.display = 'flex';
                     
-                    // 20秒后继续下一个测试
-                    urlTestTimeout = setTimeout(proceedToNextTest, 20000);
+                    // 记录结果
+                    urlTestHistory.push({
+                        url: url,
+                        status: '成功',
+                        message: '页面加载成功',
+                        timestamp: formatDateTime(new Date())
+                    });
+                    
+                    // 10秒后继续下一个测试
+                    urlTestTimeout = setTimeout(proceedToNextTest, 10000);
                 };
                 
                 frame.onerror = function() {
                     clearTimeout(urlTestTimeout);
+                    const errorMsg = '页面加载失败';
                     document.getElementById('url-test-status').textContent = '加载失败';
                     document.getElementById('url-test-status').className = 'status-error';
+                    document.getElementById('url-test-error').textContent = errorMsg;
+                    document.getElementById('url-test-error').style.display = 'block';
+                    document.getElementById('url-test-controls').style.display = 'flex';
                     
-                    // 20秒后继续下一个测试
-                    urlTestTimeout = setTimeout(proceedToNextTest, 20000);
+                    // 记录结果
+                    urlTestHistory.push({
+                        url: url,
+                        status: '失败',
+                        message: errorMsg,
+                        timestamp: formatDateTime(new Date())
+                    });
                 };
+            }
+            
+            // 开始下一个网址测试
+            function startNextUrlTest() {
+                if (currentTestIndex >= urlTestList.length) {
+                    // 所有测试完成
+                    document.getElementById('url-test-count').textContent = `所有网址检测完成 (共 ${urlTestList.length} 个)`;
+                    document.getElementById('url-test-status').textContent = '已完成';
+                    document.getElementById('url-test-status').className = 'status-success';
+                    document.getElementById('url-test-current-url').textContent = '检测完成';
+                    document.getElementById('url-test-view-history').style.display = 'block';
+                    return;
+                }
+                
+                startCurrentUrlTest();
             }
             
             // 继续下一个测试
             function proceedToNextTest() {
                 currentTestIndex++;
                 startNextUrlTest();
+            }
+            
+            // 显示测试历史记录
+            function displayTestHistory() {
+                const historyContent = document.getElementById('url-test-history-content');
+                historyContent.innerHTML = '';
+                
+                if (urlTestHistory.length === 0) {
+                    historyContent.innerHTML = '<p>没有检测历史记录</p>';
+                } else {
+                    urlTestHistory.forEach((item, index) => {
+                        const historyItem = document.createElement('div');
+                        historyItem.className = 'history-item';
+                        
+                        const statusClass = item.status === '成功' ? 'status-success' : 'status-error';
+                        
+                        historyItem.innerHTML = `
+                            <div><strong>#${index + 1}</strong> ${item.url}</div>
+                            <div>状态: <span class="url-status ${statusClass}">${item.status}</span></div>
+                            <div>时间: ${item.timestamp}</div>
+                            ${item.message ? `<div>信息: ${item.message}</div>` : ''}
+                        `;
+                        
+                        historyContent.appendChild(historyItem);
+                    });
+                }
+                
+                document.getElementById('url-test-history').style.display = 'block';
             }
         });
     </script>
