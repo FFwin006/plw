@@ -1,620 +1,906 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>多域名页面检测工具</title>
+    <title>域名自动轮播</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
+            padding: 20px;
+            text-align: center;
+            background-color: #f5f5f5;
             -webkit-text-size-adjust: 100%;
         }
-        .header {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            text-align: center;
-            position: relative;
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .input-area {
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            transition: all 0.3s ease;
-        }
-        .input-area.hidden {
-            display: none;
-        }
-        .button-area {
-            padding: 10px;
-            background-color: #f5f5f5;
-            display: flex;
-            gap: 8px;
-            border-bottom: 1px solid #ddd;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .viewer-area {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        .browser-view {
+        iframe {
             width: 100%;
-            height: 100%;
-            border: none;
-            background-color: #fff;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 20px 0;
         }
-        .progress-container {
-            flex: 1;
-            min-width: 100px;
-            margin-left: 8px;
-        }
-        .progress-bar {
-            height: 20px;
-            background-color: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-        }
-        .progress {
-            height: 100%;
-            background-color: #4CAF50;
-            width: 0%;
-            transition: width 0.3s;
-        }
-        .progress-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #333;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .status-bar {
+        .controls {
+            margin: 20px 0;
             display: flex;
-            justify-content: space-between;
-            padding: 8px 10px;
-            background-color: #333;
-            color: white;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
         }
         button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
             color: white;
-            padding: 8px 12px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            -webkit-appearance: none;
             min-width: 80px;
         }
-        #checkButton {
-            background-color: #4CAF50;
-        }
-        #checkButton:hover {
+        button:hover {
             background-color: #45a049;
         }
-        #stopButton {
-            background-color: #f44336;
-            display: none;
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
-        #stopButton:hover {
-            background-color: #d32f2f;
+        .status {
+            margin: 10px 0;
+            font-weight: bold;
+            font-size: 14px;
         }
-        #clearDomains {
-            background-color: #2196F3;
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 10px 0;
         }
-        #clearDomains:hover {
-            background-color: #0b7dda;
+        .progress-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s;
         }
-        #showResults {
-            background-color: #673AB7;
+        .domain-list {
+            margin: 20px 0;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            -webkit-overflow-scrolling: touch;
         }
-        #showResults:hover {
-            background-color: #5E35B1;
+        .domain-item {
+            padding: 8px 5px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
         }
-        #clearPages {
-            background-color: #FF5722;
+        .domain-item:last-child {
+            border-bottom: none;
         }
-        #clearPages:hover {
-            background-color: #E64A19;
+        .remove-domain {
+            color: red;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 0 5px;
         }
-        .results-modal {
-            display: none;
+        .add-domain {
+            display: flex;
+            margin: 10px 0;
+            flex-direction: column;
+        }
+        .add-domain textarea {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            min-height: 100px;
+            resize: vertical;
+            font-size: 14px;
+            -webkit-appearance: none;
+        }
+        .add-domain button {
+            border-radius: 4px;
+        }
+        .instructions {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+            text-align: left;
+            line-height: 1.4;
+        }
+        .fullscreen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            z-index: 1000;
-            overflow: auto;
-        }
-        .results-content {
             background-color: white;
-            margin: 20px auto;
-            padding: 15px;
-            width: 90%;
-            max-width: 800px;
-            border-radius: 5px;
-            max-height: 80vh;
-            overflow-y: auto;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
         }
-        .close-results {
-            float: right;
-            font-size: 24px;
-            cursor: pointer;
+        .fullscreen-iframe {
+            width: 100%;
+            flex-grow: 1;
+            border: none;
         }
-        .result-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .result-domain {
-            font-weight: bold;
-            margin-bottom: 5px;
-            word-break: break-all;
-        }
-        .result-status {
+        .fullscreen-header {
+            background-color: #f5f5f5;
             display: flex;
+            justify-content: space-between;
             align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 5px;
         }
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            flex-shrink: 0;
+        .fullscreen-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
-        .online {
-            background-color: #4CAF50;
+        .fullscreen-url {
+            flex-grow: 1;
+            text-align: center;
+            font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 10px;
+            font-size: 14px;
         }
-        .offline {
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .retry-btn {
             background-color: #f44336;
         }
-        .error {
-            background-color: #ff9800;
+        .retry-btn:hover {
+            background-color: #d32f2f;
         }
-        .result-time {
+        .domain-count {
+            font-size: 0.9em;
             color: #666;
-            font-size: 12px;
+            margin-top: 5px;
         }
-        textarea {
+        .ip-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            text-align: left;
+        }
+        .fullscreen-progress {
             width: 100%;
-            height: 100px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            resize: vertical;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-        .timer {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: rgba(0,0,0,0.7);
-            color: white;
             padding: 5px 10px;
-            border-radius: 20px;
+            background-color: #f5f5f5;
             font-size: 14px;
-            z-index: 1000;
+            text-align: center;
         }
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255,255,255,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        @media (max-width: 480px) {
-            .button-area {
-                gap: 6px;
+        @media (max-width: 600px) {
+            iframe {
+                height: 300px;
             }
-            button {
+            .controls button {
+                flex-grow: 1;
+            }
+            .fullscreen-header {
+                flex-direction: column;
+                padding: 8px;
+            }
+            .fullscreen-url {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            .fullscreen-controls {
+                width: 100%;
+            }
+            .fullscreen-controls button {
+                flex-grow: 1;
                 padding: 8px 10px;
-                font-size: 13px;
-                min-width: 70px;
-            }
-            .progress-container {
-                margin-left: 6px;
-            }
-            .progress-bar {
-                height: 16px;
-            }
-            .status-bar {
-                font-size: 13px;
-                padding: 6px 8px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>多域名页面检测工具</h1>
-    </div>
-    
-    <div class="input-area" id="inputArea">
-        <p>请输入要检测的域名列表（每行一个域名）：</p>
-        <textarea id="domainList" placeholder="例如：
-example.com
-google.com
-github.com"></textarea>
-    </div>
-    
-    <div class="button-area">
-        <button id="checkButton">开始检测</button>
-        <button id="stopButton">停止检测</button>
-        <button id="clearDomains">清理域名</button>
-        <button id="showResults">检测结果</button>
-        <button id="clearPages">清理页面</button>
+    <div class="container">
+        <h1>域名自动轮播</h1>
+        
+        <div class="ip-info" id="ipInfo">正在获取IP信息...</div>
+        
+        <div class="add-domain">
+            <div class="instructions">
+                可一次添加多个域名，用逗号、空格或换行分隔<br>
+                例:https://001game6.top, https://www.001gameapp3.com或:<br>
+                https://www.001gameapp5.com<br>
+                https://www.001game.app<br>
+                https://i001game.com
+            </div>
+            <textarea id="newDomains" placeholder="输入域名，多个域名可用逗号、空格或换行分隔"></textarea>
+            <button id="addDomainBtn">添加域名</button>
+        </div>
+        
+        <div class="domain-list" id="domainList">
+            <!-- 域名列表将在这里动态生成 -->
+        </div>
+        <div class="domain-count" id="domainCount">当前域名数量: 0</div>
+        
+        <div class="controls">
+            <button id="startBtn">开始</button>
+            <button id="pauseBtn" disabled>暂停</button>
+            <button id="nextBtn" disabled>下一个</button>
+            <button id="prevBtn" disabled>上一个</button>
+            <button id="reloadBtn" disabled>重新加载</button>
+            <button id="clearBtn">清空列表</button>
+            <button id="fullscreenBtn">全屏模式</button>
+            <button id="viewHistoryBtn">查看历史记录</button>
+        </div>
+        <div class="status">
+            当前状态: <span id="statusText">准备就绪</span><br>
+            当前域名: <span id="currentDomain">无</span><br>
+            进度: <span id="progressText">0/0</span>
+        </div>
         <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress" id="progressBar"></div>
-                <div class="progress-text" id="progressText">0/0</div>
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div id="errorContainer" class="error-message" style="display: none;"></div>
+        <iframe id="domainFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+    </div>
+
+    <!-- 全屏模式容器 -->
+    <div class="fullscreen" id="fullscreenContainer">
+        <div class="fullscreen-header">
+            <div class="fullscreen-url" id="fullscreenUrl"></div>
+            <div class="fullscreen-progress" id="fullscreenProgress"></div>
+            <div class="fullscreen-controls">
+                <button id="fsPrevBtn">上一个</button>
+                <button id="fsNextBtn">下一个</button>
+                <button id="fsReloadBtn">重新加载</button>
+                <button id="fsPauseBtn">暂停</button>
+                <button id="exitFullscreenBtn">退出全屏</button>
             </div>
         </div>
-    </div>
-    
-    <div class="viewer-area">
-        <div class="status-bar" id="statusBar">
-            <span id="currentDomain">准备就绪</span>
-            <span id="statusText">等待开始检测</span>
-        </div>
-        <iframe class="browser-view" id="browserView" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
-    </div>
-    
-    <div class="results-modal" id="resultsModal">
-        <div class="results-content">
-            <span class="close-results" id="closeResults">&times;</span>
-            <h2>检测结果</h2>
-            <div id="resultsContainer"></div>
-        </div>
+        <iframe class="fullscreen-iframe" id="fullscreenFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+        <div id="fsErrorContainer" class="error-message" style="display: none;"></div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const inputArea = document.getElementById('inputArea');
-            const domainListTextarea = document.getElementById('domainList');
-            const checkButton = document.getElementById('checkButton');
-            const stopButton = document.getElementById('stopButton');
-            const clearDomainsButton = document.getElementById('clearDomains');
-            const showResultsButton = document.getElementById('showResults');
-            const clearPagesButton = document.getElementById('clearPages');
-            const closeResultsButton = document.getElementById('closeResults');
-            const browserView = document.getElementById('browserView');
-            const resultsModal = document.getElementById('resultsModal');
-            const resultsContainer = document.getElementById('resultsContainer');
-            const progressBar = document.getElementById('progressBar');
+        // 域名列表 - 初始可以为空，用户自行添加
+        let domains = [];
+        let history = [];
+        let currentIndex = 0;
+        let isPlaying = false;
+        let playTimeout;
+        let loadTimeout;
+        const loadTimeoutDuration = 30000; // 30秒加载超时
+        const viewDuration = 10000; // 每个域名查看10秒
+        
+        // 从本地存储加载域名和历史记录
+        function loadFromStorage() {
+            const savedDomains = localStorage.getItem('domainRotatorDomains');
+            if (savedDomains) {
+                domains = JSON.parse(savedDomains);
+                renderDomainList();
+            }
+            
+            const savedHistory = localStorage.getItem('domainRotatorHistory');
+            if (savedHistory) {
+                history = JSON.parse(savedHistory);
+            }
+            
+            const savedIndex = localStorage.getItem('domainRotatorCurrentIndex');
+            if (savedIndex) {
+                currentIndex = parseInt(savedIndex);
+                if (currentIndex >= 0 && currentIndex < domains.length && domains.length > 0) {
+                    loadDomain(currentIndex, false);
+                }
+            }
+            
+            updateDomainCount();
+        }
+        
+        // 更新域名数量显示
+        function updateDomainCount() {
+            document.getElementById('domainCount').textContent = `当前域名数量: ${domains.length}`;
+        }
+        
+        // 保存域名到本地存储
+        function saveDomainsToStorage() {
+            localStorage.setItem('domainRotatorDomains', JSON.stringify(domains));
+            updateDomainCount();
+        }
+        
+        // 保存历史记录到本地存储
+        function saveHistoryToStorage() {
+            localStorage.setItem('domainRotatorHistory', JSON.stringify(history));
+        }
+        
+        // 保存当前索引到本地存储
+        function saveCurrentIndexToStorage() {
+            localStorage.setItem('domainRotatorCurrentIndex', currentIndex.toString());
+        }
+        
+        // 添加历史记录
+        function addToHistory(domain) {
+            // 检查是否已存在相同的历史记录
+            const existingIndex = history.findIndex(item => item.url === domain);
+            
+            if (existingIndex !== -1) {
+                // 如果已存在，更新访问时间
+                history[existingIndex].timestamp = new Date().toISOString();
+            } else {
+                // 否则添加新的历史记录
+                history.push({
+                    url: domain,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            
+            // 按时间降序排序
+            history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            saveHistoryToStorage();
+        }
+        
+        // 渲染域名列表
+        function renderDomainList() {
+            const domainList = document.getElementById('domainList');
+            domainList.innerHTML = '';
+            
+            if (domains.length === 0) {
+                domainList.innerHTML = '<div class="domain-item">暂无域名，请添加</div>';
+                updateDomainCount();
+                return;
+            }
+            
+            domains.forEach((domain, index) => {
+                const domainItem = document.createElement('div');
+                domainItem.className = 'domain-item';
+                domainItem.innerHTML = `
+                    <span>${domain}</span>
+                    <span class="remove-domain" data-index="${index}">×</span>
+                `;
+                domainList.appendChild(domainItem);
+            });
+            
+            // 添加删除事件
+            document.querySelectorAll('.remove-domain').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    removeDomain(index);
+                });
+            });
+            
+            updateUI();
+            updateDomainCount();
+        }
+        
+        // 处理并添加多个域名
+        function addMultipleDomains() {
+            const domainsInput = document.getElementById('newDomains');
+            let inputText = domainsInput.value.trim();
+            
+            if (!inputText) {
+                alert('请输入域名');
+                return;
+            }
+            
+            // 替换各种分隔符为统一的分隔符
+            inputText = inputText.replace(/\s+/g, ','); // 空格转逗号
+            inputText = inputText.replace(/,+/g, ',');  // 多个逗号转单个逗号
+            inputText = inputText.replace(/，/g, ',');   // 中文逗号转英文逗号
+            
+            // 分割域名
+            let newDomains = inputText.split(',')
+                .map(domain => domain.trim())
+                .filter(domain => domain.length > 0);
+            
+            // 处理每个域名
+            newDomains = newDomains.map(domain => {
+                // 如果没有协议头，添加https://
+                if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+                    domain = 'https://' + domain;
+                }
+                return domain;
+            });
+            
+            // 过滤掉已存在的域名
+            newDomains = newDomains.filter(domain => !domains.includes(domain));
+            
+            if (newDomains.length === 0) {
+                alert('没有可添加的新域名');
+                return;
+            }
+            
+            // 添加新域名
+            domains = domains.concat(newDomains);
+            saveDomainsToStorage();
+            renderDomainList();
+            
+            // 清空输入框
+            domainsInput.value = '';
+            
+            // 启用开始按钮
+            document.getElementById('startBtn').disabled = false;
+            
+            alert(`成功添加 ${newDomains.length} 个域名`);
+        }
+        
+        // 删除域名
+        function removeDomain(index) {
+            if (index >= 0 && index < domains.length) {
+                domains.splice(index, 1);
+                saveDomainsToStorage();
+                renderDomainList();
+                
+                // 如果删除了当前正在显示的域名，重新加载
+                if (currentIndex >= domains.length) {
+                    currentIndex = Math.max(0, domains.length - 1);
+                    if (domains.length > 0) {
+                        loadDomain(currentIndex);
+                    } else {
+                        document.getElementById('domainFrame').src = 'about:blank';
+                        document.getElementById('currentDomain').textContent = '无';
+                        document.getElementById('statusText').textContent = '准备就绪';
+                        document.getElementById('startBtn').disabled = true;
+                    }
+                }
+                
+                saveCurrentIndexToStorage();
+            }
+        }
+        
+        // 清空域名列表
+        function clearDomainList() {
+            if (domains.length === 0 || confirm('确定要清空所有域名和缓存吗？此操作不可恢复！')) {
+                domains = [];
+                history = [];
+                currentIndex = 0;
+                
+                // 清除所有本地存储
+                localStorage.removeItem('domainRotatorDomains');
+                localStorage.removeItem('domainRotatorHistory');
+                localStorage.removeItem('domainRotatorCurrentIndex');
+                
+                // 重置UI
+                renderDomainList();
+                document.getElementById('domainFrame').src = 'about:blank';
+                document.getElementById('currentDomain').textContent = '无';
+                document.getElementById('statusText').textContent = '准备就绪';
+                document.getElementById('startBtn').disabled = true;
+                pausePlayback();
+                
+                // 更新域名计数
+                updateDomainCount();
+            }
+        }
+        
+        // 进入全屏模式
+        function enterFullscreen(url) {
+            const fullscreenContainer = document.getElementById('fullscreenContainer');
+            const fullscreenFrame = document.getElementById('fullscreenFrame');
+            
+            fullscreenFrame.src = url;
+            document.getElementById('fullscreenUrl').textContent = url;
+            document.getElementById('fullscreenProgress').textContent = `${currentIndex + 1}/${domains.length}`;
+            fullscreenContainer.style.display = 'flex';
+            
+            // 更新全屏控制按钮状态
+            updateFullscreenControls();
+            
+            // 禁用滚动
+            document.body.style.overflow = 'hidden';
+            
+            // 如果正在播放，全屏模式下也继续播放
+            if (isPlaying) {
+                document.getElementById('fsPauseBtn').textContent = '暂停';
+            } else {
+                document.getElementById('fsPauseBtn').textContent = '播放';
+            }
+        }
+        
+        // 更新全屏控制按钮状态
+        function updateFullscreenControls() {
+            document.getElementById('fsPrevBtn').disabled = currentIndex <= 0;
+            document.getElementById('fsNextBtn').disabled = currentIndex >= domains.length - 1;
+        }
+        
+        // 退出全屏模式
+        function exitFullscreen() {
+            const fullscreenContainer = document.getElementById('fullscreenContainer');
+            const fullscreenFrame = document.getElementById('fullscreenFrame');
+            
+            fullscreenFrame.src = 'about:blank';
+            fullscreenContainer.style.display = 'none';
+            document.getElementById('fsErrorContainer').style.display = 'none';
+            
+            // 恢复滚动
+            document.body.style.overflow = '';
+        }
+        
+        // 加载域名到iframe
+        function loadDomainInFrame(url, frameId = 'domainFrame', errorContainerId = 'errorContainer') {
+            const frame = document.getElementById(frameId);
+            const errorContainer = document.getElementById(errorContainerId);
+            
+            // 隐藏错误信息
+            errorContainer.style.display = 'none';
+            
+            // 更新当前域名显示
+            if (frameId === 'domainFrame') {
+                document.getElementById('currentDomain').textContent = url;
+            } else {
+                document.getElementById('fullscreenUrl').textContent = url;
+                document.getElementById('fullscreenProgress').textContent = `${currentIndex + 1}/${domains.length}`;
+            }
+            
+            // 添加到历史记录
+            addToHistory(url);
+            
+            // 设置iframe源
+            frame.src = url;
+        }
+        
+        // 更新UI状态
+        function updateUI() {
             const progressText = document.getElementById('progressText');
-            const statusBar = document.getElementById('statusBar');
-            const currentDomainSpan = document.getElementById('currentDomain');
-            const statusTextSpan = document.getElementById('statusText');
+            const progressBar = document.getElementById('progressBar');
+            const currentDomain = document.getElementById('currentDomain');
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const startBtn = document.getElementById('startBtn');
+            const reloadBtn = document.getElementById('reloadBtn');
             
-            let isChecking = false;
-            let currentCheckIndex = 0;
-            let checkTimeout = null;
-            let timerInterval = null;
-            let currentTimer = 10;
-            let domains = [];
-            let results = [];
+            progressText.textContent = `${currentIndex + 1}/${domains.length}`;
+            progressBar.style.width = domains.length > 0 ? `${((currentIndex + 1) / domains.length) * 100}%` : '0%';
+            currentDomain.textContent = domains[currentIndex] || '无';
             
-            // 检测按钮点击事件
-            checkButton.addEventListener('click', function() {
-                const domainsText = domainListTextarea.value.trim();
-                if (!domainsText) {
-                    alert('请输入至少一个域名');
-                    return;
-                }
-                
-                domains = domainsText.split('\n')
-                    .map(domain => domain.trim())
-                    .filter(domain => domain.length > 0)
-                    .map(domain => {
-                        // 自动添加http://前缀（如果没有指定协议）
-                        if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
-                            return 'http://' + domain;
-                        }
-                        return domain;
-                    });
-                
-                startChecking();
+            nextBtn.disabled = currentIndex >= domains.length - 1 || domains.length === 0;
+            prevBtn.disabled = currentIndex <= 0 || domains.length === 0;
+            startBtn.disabled = domains.length === 0;
+            reloadBtn.disabled = domains.length === 0;
+            
+            // 同步全屏控制按钮状态
+            if (document.getElementById('fullscreenContainer').style.display === 'flex') {
+                updateFullscreenControls();
+                document.getElementById('fullscreenProgress').textContent = `${currentIndex + 1}/${domains.length}`;
+            }
+        }
+        
+        // 显示加载错误
+        function showLoadError(url, frameId = 'domainFrame', errorContainerId = 'errorContainer') {
+            const errorContainer = document.getElementById(errorContainerId);
+            errorContainer.innerHTML = `无法加载: ${url} <button class="retry-btn" id="retryBtn">重试</button>`;
+            errorContainer.style.display = 'block';
+            
+            // 添加重试事件
+            document.getElementById('retryBtn').addEventListener('click', function() {
+                loadDomainInFrame(url, frameId, errorContainerId);
             });
+        }
+        
+        // 加载域名
+        function loadDomain(index, autoPlay = true) {
+            if (index < 0 || index >= domains.length) return;
             
-            // 停止检测按钮
-            stopButton.addEventListener('click', function() {
-                stopChecking();
-                inputArea.classList.remove('hidden');
-                statusTextSpan.textContent = '检测已停止';
-                currentDomainSpan.textContent = '准备就绪';
-                browserView.src = 'about:blank';
-            });
+            currentIndex = index;
+            saveCurrentIndexToStorage();
+            const domain = domains[index];
             
-            // 清理域名按钮
-            clearDomainsButton.addEventListener('click', function() {
-                domainListTextarea.value = '';
-            });
+            // 更新状态
+            document.getElementById('statusText').textContent = '加载中...';
+            updateUI();
             
-            // 清理页面按钮
-            clearPagesButton.addEventListener('click', function() {
-                browserView.src = 'about:blank';
-                currentDomainSpan.textContent = '页面已清理';
-            });
+            // 设置iframe源
+            loadDomainInFrame(domain);
             
-            // 显示结果按钮
-            showResultsButton.addEventListener('click', function() {
-                showResults();
-            });
-            
-            // 关闭结果窗口
-            closeResultsButton.addEventListener('click', function() {
-                resultsModal.style.display = 'none';
-            });
-            
-            // 点击模态框外部关闭
-            resultsModal.addEventListener('click', function(e) {
-                if (e.target === resultsModal) {
-                    resultsModal.style.display = 'none';
-                }
-            });
-            
-            // 开始检测
-            function startChecking() {
-                isChecking = true;
-                checkButton.disabled = true;
-                stopButton.style.display = 'inline-block';
-                showResultsButton.disabled = true;
-                results = [];
-                currentCheckIndex = 0;
-                
-                // 隐藏输入区域
-                inputArea.classList.add('hidden');
-                
-                // 重置进度条
-                progressBar.style.width = '0%';
-                progressText.textContent = `0/${domains.length}`;
-                statusTextSpan.textContent = '检测中...';
-                
-                // 清空结果容器
-                resultsContainer.innerHTML = '';
-                
-                // 开始检测第一个域名
-                checkNextDomain();
+            // 如果是全屏模式，同时更新全屏iframe
+            if (document.getElementById('fullscreenContainer').style.display === 'flex') {
+                loadDomainInFrame(domain, 'fullscreenFrame', 'fsErrorContainer');
             }
             
-            // 停止检测
-            function stopChecking() {
-                isChecking = false;
-                checkButton.disabled = false;
-                stopButton.style.display = 'none';
-                showResultsButton.disabled = false;
+            // 清除之前的超时
+            clearTimeout(loadTimeout);
+            
+            // 设置加载超时
+            loadTimeout = setTimeout(() => {
+                document.getElementById('statusText').textContent = '加载超时';
+                showLoadError(domain);
                 
-                // 显示输入区域
-                inputArea.classList.remove('hidden');
+                if (isPlaying && autoPlay) {
+                    setTimeout(() => {
+                        nextDomain();
+                    }, 2000);
+                }
+            }, loadTimeoutDuration);
+            
+            // 监听iframe加载完成
+            const frame = document.getElementById('domainFrame');
+            const fullscreenFrame = document.getElementById('fullscreenFrame');
+            
+            const handleLoad = function() {
+                clearTimeout(loadTimeout);
+                document.getElementById('statusText').textContent = isPlaying ? '播放中' : '加载完成';
                 
-                // 清除定时器
-                if (checkTimeout) {
-                    clearTimeout(checkTimeout);
-                    checkTimeout = null;
-                }
+                // 隐藏错误信息
+                document.getElementById('errorContainer').style.display = 'none';
+                document.getElementById('fsErrorContainer').style.display = 'none';
                 
-                // 清除计时器
-                if (timerInterval) {
-                    clearInterval(timerInterval);
-                    timerInterval = null;
+                if (isPlaying && autoPlay) {
+                    // 设置自动切换到下一个
+                    clearTimeout(playTimeout);
+                    playTimeout = setTimeout(() => {
+                        nextDomain();
+                    }, viewDuration);
                 }
+            };
+            
+            const handleError = function() {
+                clearTimeout(loadTimeout);
+                document.getElementById('statusText').textContent = '加载失败';
+                showLoadError(domain);
                 
-                // 移除计时显示和加载指示器
-                const existingTimer = document.querySelector('.timer');
-                if (existingTimer) {
-                    existingTimer.remove();
+                if (isPlaying && autoPlay) {
+                    // 即使加载失败也继续下一个
+                    playTimeout = setTimeout(() => {
+                        nextDomain();
+                    }, 2000);
                 }
-                const existingLoader = document.querySelector('.loading-overlay');
-                if (existingLoader) {
-                    existingLoader.remove();
-                }
+            };
+            
+            // 设置事件监听器
+            frame.onload = handleLoad;
+            frame.onerror = handleError;
+            fullscreenFrame.onload = handleLoad;
+            fullscreenFrame.onerror = handleError;
+        }
+        
+        // 下一个域名
+        function nextDomain() {
+            if (currentIndex < domains.length - 1) {
+                loadDomain(currentIndex + 1);
+            } else {
+                // 到达列表末尾
+                isPlaying = false;
+                document.getElementById('statusText').textContent = '播放完成';
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('fsPauseBtn').textContent = '播放';
+            }
+        }
+        
+        // 上一个域名
+        function prevDomain() {
+            if (currentIndex > 0) {
+                loadDomain(currentIndex - 1);
+            }
+        }
+        
+        // 重新加载当前域名
+        function reloadCurrentDomain() {
+            if (domains.length > 0 && currentIndex >= 0 && currentIndex < domains.length) {
+                loadDomain(currentIndex, false);
+            }
+        }
+        
+        // 开始播放
+        function startPlayback() {
+            if (domains.length === 0) {
+                document.getElementById('statusText').textContent = '没有可用的域名';
+                return;
             }
             
-            // 检测下一个域名
-            function checkNextDomain() {
-                if (!isChecking || currentCheckIndex >= domains.length) {
-                    // 检测完成或已停止
-                    stopChecking();
-                    statusTextSpan.textContent = `检测完成，共检测 ${results.length} 个域名`;
-                    
-                    // 保存结果到本地存储
-                    saveToHistory();
-                    return;
-                }
-                
-                const domain = domains[currentCheckIndex];
-                currentDomainSpan.textContent = `正在检测: ${domain}`;
-                
-                // 更新进度显示
-                const progress = Math.round(((currentCheckIndex + 1) / domains.length) * 100);
-                progressBar.style.width = `${progress}%`;
-                progressText.textContent = `${currentCheckIndex + 1}/${domains.length}`;
-                
-                // 添加加载指示器
-                const loadingOverlay = document.createElement('div');
-                loadingOverlay.className = 'loading-overlay';
-                loadingOverlay.innerHTML = '<div class="loading-spinner"></div>';
-                document.querySelector('.viewer-area').appendChild(loadingOverlay);
-                
-                // 强制iframe重新加载
-                browserView.src = '';
-                setTimeout(() => {
-                    browserView.src = domain;
-                    
-                    // 添加iframe加载完成事件监听
-                    browserView.onload = function() {
-                        loadingOverlay.style.display = 'none';
-                    };
-                    
-                    browserView.onerror = function() {
-                        loadingOverlay.style.display = 'none';
-                    };
-                }, 100);
-                
-                // 创建计时器
-                const timerElement = document.createElement('div');
-                timerElement.className = 'timer';
-                timerElement.textContent = currentTimer;
-                document.querySelector('.viewer-area').appendChild(timerElement);
-                
-                currentTimer = 10;
-                timerInterval = setInterval(() => {
-                    currentTimer--;
-                    timerElement.textContent = currentTimer;
-                    
-                    if (currentTimer <= 0) {
-                        clearInterval(timerInterval);
-                        timerInterval = null;
-                        timerElement.remove();
-                        loadingOverlay.remove();
-                    }
-                }, 1000);
-                
-                // 记录开始时间
-                const startTime = Date.now();
-                
-                // 10秒后检测下一个域名
-                checkTimeout = setTimeout(() => {
-                    // 确保移除加载指示器
-                    if (document.querySelector('.loading-overlay')) {
-                        document.querySelector('.loading-overlay').remove();
-                    }
-                    
-                    // 计算响应时间
-                    const responseTime = Date.now() - startTime;
-                    
-                    // 检查iframe是否加载成功
-                    let status = 'online';
-                    try {
-                        // 尝试访问iframe内容，如果失败则标记为错误
-                        if (!browserView.contentWindow || !browserView.contentWindow.document) {
-                            status = 'error';
-                        }
-                    } catch (e) {
-                        status = 'error';
-                    }
-                    
-                    // 记录结果
-                    const result = {
-                        domain,
-                        status: status,
-                        responseTime,
-                        timestamp: new Date().toLocaleString(),
-                        url: browserView.src
-                    };
-                    
-                    results.push(result);
-                    currentCheckIndex++;
-                    
-                    // 检测下一个域名
-                    checkNextDomain();
-                }, 10000);
+            isPlaying = true;
+            document.getElementById('statusText').textContent = '播放中';
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('fsPauseBtn').textContent = '暂停';
+            
+            // 如果当前没有加载任何域名，从第一个开始
+            const frame = document.getElementById('domainFrame');
+            if (!frame.src || frame.src === 'about:blank') {
+                loadDomain(0);
+            } else {
+                // 如果已经有加载的域名，继续自动播放
+                playTimeout = setTimeout(() => {
+                    nextDomain();
+                }, viewDuration);
+            }
+        }
+        
+        // 暂停播放
+        function pausePlayback() {
+            isPlaying = false;
+            document.getElementById('statusText').textContent = '已暂停';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('fsPauseBtn').textContent = '播放';
+            clearTimeout(playTimeout);
+            clearTimeout(loadTimeout);
+        }
+        
+        // 查看历史记录
+        function viewHistory() {
+            if (history.length === 0) {
+                alert('暂无历史记录');
+                return;
             }
             
-            // 显示结果
-            function showResults() {
-                resultsContainer.innerHTML = '';
+            // 将历史记录格式化为HTML
+            let historyHTML = '<html><head><title>浏览历史记录</title><style>';
+            historyHTML += 'body { font-family: Arial, sans-serif; margin: 20px; }';
+            historyHTML += 'h1 { color: #333; }';
+            historyHTML += '.history-item { padding: 10px; border-bottom: 1px solid #eee; }';
+            historyHTML += '.history-item:last-child { border-bottom: none; }';
+            historyHTML += '.history-url { margin-bottom: 5px; font-weight: bold; }';
+            historyHTML += '.history-time { color: #666; font-size: 0.9em; }';
+            historyHTML += '</style></head><body><h1>浏览历史记录</h1>';
+            
+            history.forEach(item => {
+                const date = new Date(item.timestamp);
+                const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
                 
-                if (results.length === 0) {
-                    resultsContainer.innerHTML = '<p>没有检测结果</p>';
+                historyHTML += `
+                    <div class="history-item">
+                        <div class="history-url"><a href="${item.url}" target="_blank">${item.url}</a></div>
+                        <div class="history-time">${formattedDate}</div>
+                    </div>
+                `;
+            });
+            
+            historyHTML += '</body></html>';
+            
+            // 在新标签页打开历史记录
+            const historyWindow = window.open('', '_blank');
+            historyWindow.document.write(historyHTML);
+            historyWindow.document.close();
+        }
+        
+        // 获取IP信息
+        function fetchIPInfo() {
+            const ipInfoElement = document.getElementById('ipInfo');
+            
+            // 使用ipapi.co服务获取IP信息
+            fetch('https://ipapi.co/json/')
+                .then(response => response.json())
+                .then(data => {
+                    let info = `IP地址: ${data.ip}`;
+                    if (data.city) info += ` | 城市: ${data.city}`;
+                    if (data.region) info += ` | 地区: ${data.region}`;
+                    if (data.country_name) info += ` | 国家: ${data.country_name}`;
+                    if (data.org) info += ` | ISP: ${data.org}`;
+                    
+                    ipInfoElement.textContent = info;
+                })
+                .catch(error => {
+                    console.error('获取IP信息失败:', error);
+                    // 如果ipapi.co失败，尝试使用另一个服务
+                    fetch('https://api.ipify.org?format=json')
+                        .then(response => response.json())
+                        .then(data => {
+                            ipInfoElement.textContent = `IP地址: ${data.ip}`;
+                        })
+                        .catch(() => {
+                            ipInfoElement.textContent = '无法获取IP信息';
+                        });
+                });
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const frame = document.getElementById('domainFrame');
+            const startBtn = document.getElementById('startBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const reloadBtn = document.getElementById('reloadBtn');
+            const statusText = document.getElementById('statusText');
+            const currentDomain = document.getElementById('currentDomain');
+            const progressText = document.getElementById('progressText');
+            const progressBar = document.getElementById('progressBar');
+            
+            // 加载保存的域名和历史记录
+            loadFromStorage();
+            
+            // 获取IP信息
+            fetchIPInfo();
+            
+            // 事件监听
+            startBtn.addEventListener('click', startPlayback);
+            pauseBtn.addEventListener('click', pausePlayback);
+            nextBtn.addEventListener('click', () => {
+                pausePlayback();
+                nextDomain();
+            });
+            prevBtn.addEventListener('click', () => {
+                pausePlayback();
+                prevDomain();
+            });
+            reloadBtn.addEventListener('click', reloadCurrentDomain);
+            
+            // 全屏控制按钮
+            document.getElementById('fsNextBtn').addEventListener('click', () => {
+                pausePlayback();
+                nextDomain();
+            });
+            
+            document.getElementById('fsPrevBtn').addEventListener('click', () => {
+                pausePlayback();
+                prevDomain();
+            });
+            
+            document.getElementById('fsReloadBtn').addEventListener('click', () => {
+                reloadCurrentDomain();
+            });
+            
+            document.getElementById('fsPauseBtn').addEventListener('click', function() {
+                if (isPlaying) {
+                    pausePlayback();
                 } else {
-                    results.forEach(result => {
-                        const item = document.createElement('div');
-                        item.className = 'result-item';
-                        
-                        const domain = document.createElement('div');
-                        domain.className = 'result-domain';
-                        domain.textContent = result.domain;
-                        
-                        const status = document.createElement('div');
-                        status.className = 'result-status';
-                        
-                        const indicator = document.createElement('div');
-                        indicator.className = `status-indicator ${result.status}`;
-                        
-                        const statusText = document.createElement('span');
-                        if (result.status === 'online') {
-                            statusText.textContent = `在线 (${result.responseTime}ms) - 页面: 已加载`;
-                        } else {
-                            statusText.textContent = `错误 - 无法加载 (${result.responseTime}ms)`;
-                        }
-                        
-                        const time = document.createElement('div');
-                        time.className = 'result-time';
-                        time.textContent = result.timestamp;
-                        
-                        const link = document.createElement('a');
-                        link.href = result.url;
-                        link.target = '_blank';
-                        link.textContent = '在新窗口打开';
-                        link.style.marginLeft = '10px';
-                        link.style.color = '#2196F3';
-                        link.style.textDecoration = 'none';
-                        
-                        status.appendChild(indicator);
-                        status.appendChild(statusText);
-                        status.appendChild(link);
-                        
-                        item.appendChild(domain);
-                        item.appendChild(status);
-                        item.appendChild(time);
-                        
-                        resultsContainer.appendChild(item);
-                    });
+                    startPlayback();
                 }
-                
-                resultsModal.style.display = 'block';
-            }
+            });
             
-            // 保存到历史记录
-            function saveToHistory() {
-                let history = JSON.parse(localStorage.getItem('domainCheckHistory')) || [];
-                const timestamp = new Date().toISOString();
-                
-                const historyEntry = {
-                    timestamp,
-                    domains: domains,
-                    results: results
-                };
-                
-                history.unshift(historyEntry);
-                localStorage.setItem('domainCheckHistory', JSON.stringify(history));
-            }
+            // 添加域名事件
+            document.getElementById('addDomainBtn').addEventListener('click', addMultipleDomains);
+            document.getElementById('newDomains').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    addMultipleDomains();
+                }
+            });
+            
+            // 清空列表事件
+            document.getElementById('clearBtn').addEventListener('click', clearDomainList);
+            
+            // 全屏模式事件
+            document.getElementById('fullscreenBtn').addEventListener('click', function() {
+                if (frame.src && frame.src !== 'about:blank') {
+                    enterFullscreen(frame.src);
+                } else if (domains.length > 0) {
+                    loadDomain(currentIndex, false);
+                    enterFullscreen(domains[currentIndex]);
+                } else {
+                    alert('当前没有加载任何域名');
+                }
+            });
+            document.getElementById('exitFullscreenBtn').addEventListener('click', exitFullscreen);
+            
+            // 历史记录事件
+            document.getElementById('viewHistoryBtn').addEventListener('click', viewHistory);
+            
+            // 初始UI状态
+            updateUI();
+            
+            // 修复iOS上的按钮点击状态
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.classList.add('button-touch');
+                });
+                button.addEventListener('touchend', function() {
+                    this.classList.remove('button-touch');
+                });
+            });
         });
     </script>
 </body>
