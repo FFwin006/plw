@@ -52,6 +52,7 @@
             width: 100%;
             height: 100%;
             border: none;
+            background-color: #fff;
         }
         .progress-container {
             flex: 1;
@@ -212,6 +213,30 @@
             font-size: 14px;
             z-index: 1000;
         }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255,255,255,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         @media (max-width: 480px) {
             .button-area {
                 gap: 6px;
@@ -300,7 +325,7 @@ github.com"></textarea>
             let currentCheckIndex = 0;
             let checkTimeout = null;
             let timerInterval = null;
-            let currentTimer = 10; // 修改为10秒
+            let currentTimer = 10;
             let domains = [];
             let results = [];
             
@@ -409,10 +434,14 @@ github.com"></textarea>
                     timerInterval = null;
                 }
                 
-                // 移除计时显示
+                // 移除计时显示和加载指示器
                 const existingTimer = document.querySelector('.timer');
                 if (existingTimer) {
                     existingTimer.remove();
+                }
+                const existingLoader = document.querySelector('.loading-overlay');
+                if (existingLoader) {
+                    existingLoader.remove();
                 }
             }
             
@@ -431,26 +460,39 @@ github.com"></textarea>
                 const domain = domains[currentCheckIndex];
                 currentDomainSpan.textContent = `正在检测: ${domain}`;
                 
-                // 更新进度显示（当前检查的是currentCheckIndex+1，因为数组从0开始）
+                // 更新进度显示
                 const progress = Math.round(((currentCheckIndex + 1) / domains.length) * 100);
                 progressBar.style.width = `${progress}%`;
                 progressText.textContent = `${currentCheckIndex + 1}/${domains.length}`;
                 
-                // 在iframe中打开页面
-                browserView.src = domain;
+                // 添加加载指示器
+                const loadingOverlay = document.createElement('div');
+                loadingOverlay.className = 'loading-overlay';
+                loadingOverlay.innerHTML = '<div class="loading-spinner"></div>';
+                document.querySelector('.viewer-area').appendChild(loadingOverlay);
                 
-                // 创建计时器显示
-                const existingTimer = document.querySelector('.timer');
-                if (existingTimer) {
-                    existingTimer.remove();
-                }
+                // 强制iframe重新加载
+                browserView.src = '';
+                setTimeout(() => {
+                    browserView.src = domain;
+                    
+                    // 添加iframe加载完成事件监听
+                    browserView.onload = function() {
+                        loadingOverlay.style.display = 'none';
+                    };
+                    
+                    browserView.onerror = function() {
+                        loadingOverlay.style.display = 'none';
+                    };
+                }, 100);
                 
+                // 创建计时器
                 const timerElement = document.createElement('div');
                 timerElement.className = 'timer';
-                timerElement.textContent = '10';
+                timerElement.textContent = currentTimer;
                 document.querySelector('.viewer-area').appendChild(timerElement);
                 
-                currentTimer = 10; // 修改为10秒
+                currentTimer = 10;
                 timerInterval = setInterval(() => {
                     currentTimer--;
                     timerElement.textContent = currentTimer;
@@ -459,6 +501,7 @@ github.com"></textarea>
                         clearInterval(timerInterval);
                         timerInterval = null;
                         timerElement.remove();
+                        loadingOverlay.remove();
                     }
                 }, 1000);
                 
@@ -467,16 +510,32 @@ github.com"></textarea>
                 
                 // 10秒后检测下一个域名
                 checkTimeout = setTimeout(() => {
+                    // 确保移除加载指示器
+                    if (document.querySelector('.loading-overlay')) {
+                        document.querySelector('.loading-overlay').remove();
+                    }
+                    
                     // 计算响应时间
                     const responseTime = Date.now() - startTime;
+                    
+                    // 检查iframe是否加载成功
+                    let status = 'online';
+                    try {
+                        // 尝试访问iframe内容，如果失败则标记为错误
+                        if (!browserView.contentWindow || !browserView.contentWindow.document) {
+                            status = 'error';
+                        }
+                    } catch (e) {
+                        status = 'error';
+                    }
                     
                     // 记录结果
                     const result = {
                         domain,
-                        status: 'online', // 假设能加载就是online
+                        status: status,
                         responseTime,
                         timestamp: new Date().toLocaleString(),
-                        url: domain
+                        url: browserView.src
                     };
                     
                     results.push(result);
@@ -484,7 +543,7 @@ github.com"></textarea>
                     
                     // 检测下一个域名
                     checkNextDomain();
-                }, 10000); // 修改为10000毫秒（10秒）
+                }, 10000);
             }
             
             // 显示结果
@@ -510,17 +569,26 @@ github.com"></textarea>
                         
                         const statusText = document.createElement('span');
                         if (result.status === 'online') {
-                            statusText.textContent = `在线 (${result.responseTime}ms) - 页面: 已检测`;
+                            statusText.textContent = `在线 (${result.responseTime}ms) - 页面: 已加载`;
                         } else {
-                            statusText.textContent = '离线 - 无法连接';
+                            statusText.textContent = `错误 - 无法加载 (${result.responseTime}ms)`;
                         }
                         
                         const time = document.createElement('div');
                         time.className = 'result-time';
                         time.textContent = result.timestamp;
                         
+                        const link = document.createElement('a');
+                        link.href = result.url;
+                        link.target = '_blank';
+                        link.textContent = '在新窗口打开';
+                        link.style.marginLeft = '10px';
+                        link.style.color = '#2196F3';
+                        link.style.textDecoration = 'none';
+                        
                         status.appendChild(indicator);
                         status.appendChild(statusText);
+                        status.appendChild(link);
                         
                         item.appendChild(domain);
                         item.appendChild(status);
