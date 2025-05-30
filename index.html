@@ -300,7 +300,7 @@ github.com"></textarea>
             let currentCheckIndex = 0;
             let checkTimeout = null;
             let timerInterval = null;
-            let currentTimer = 5;
+            let currentTimer = 10; // 修改为10秒
             let domains = [];
             let results = [];
             
@@ -431,10 +431,10 @@ github.com"></textarea>
                 const domain = domains[currentCheckIndex];
                 currentDomainSpan.textContent = `正在检测: ${domain}`;
                 
-                // 更新状态
-                const progress = Math.round((currentCheckIndex / domains.length) * 100);
+                // 更新进度显示（当前检查的是currentCheckIndex+1，因为数组从0开始）
+                const progress = Math.round(((currentCheckIndex + 1) / domains.length) * 100);
                 progressBar.style.width = `${progress}%`;
-                progressText.textContent = `${currentCheckIndex}/${domains.length}`;
+                progressText.textContent = `${currentCheckIndex + 1}/${domains.length}`;
                 
                 // 在iframe中打开页面
                 browserView.src = domain;
@@ -447,10 +447,10 @@ github.com"></textarea>
                 
                 const timerElement = document.createElement('div');
                 timerElement.className = 'timer';
-                timerElement.textContent = '5';
+                timerElement.textContent = '10';
                 document.querySelector('.viewer-area').appendChild(timerElement);
                 
-                currentTimer = 5;
+                currentTimer = 10; // 修改为10秒
                 timerInterval = setInterval(() => {
                     currentTimer--;
                     timerElement.textContent = currentTimer;
@@ -465,7 +465,7 @@ github.com"></textarea>
                 // 记录开始时间
                 const startTime = Date.now();
                 
-                // 5秒后检测下一个域名
+                // 10秒后检测下一个域名
                 checkTimeout = setTimeout(() => {
                     // 计算响应时间
                     const responseTime = Date.now() - startTime;
@@ -484,7 +484,7 @@ github.com"></textarea>
                     
                     // 检测下一个域名
                     checkNextDomain();
-                }, 5000);
+                }, 10000); // 修改为10000毫秒（10秒）
             }
             
             // 显示结果
