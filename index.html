@@ -410,7 +410,7 @@ https://www.baidu.com
 https://www.google.com
 https://www.github.com
 
-最多不能超过 20 个网址
+最多不能超过30 个网址
 "></textarea>
             
             <div class="button-container">
@@ -428,7 +428,7 @@ https://www.github.com
                 <h3>使用说明：</h3>
                 <ol>
                     <li>在文本框中粘贴多个网址（每行一个网址）</li>
-                    <li>最多支持20个网址</li>
+                    <li>最多支持30个网址</li>
                     <li>点击"批量打开"按钮</li>
                     <li>浏览器会逐个打开这些网址（可能会弹出弹窗警告）</li>
                     <li>请允许弹出窗口以正常使用</li>
@@ -912,7 +912,7 @@ https://www.github.com
                     return;
                 }
                 
-                // 检查网址数量是否超过20个
+                // 检查网址数量是否超过30个
                 if (urls.length > 30) {
                     alert(`最多只能批量打开${urls.length}/30个网址，请减少网址数量`);
                     return;
@@ -940,8 +940,8 @@ https://www.github.com
                 document.getElementById('url-results-container').innerHTML = '';
             });
             
-            // 检测网址功能
-            document.getElementById('check-urls').addEventListener('click', function() {
+            // 检测网址功能 - 改进版
+            document.getElementById('check-urls').addEventListener('click', async function() {
                 const urlsText = document.getElementById('urls').value.trim();
                 if (!urlsText) {
                     alert('请输入至少一个网址');
@@ -961,7 +961,7 @@ https://www.github.com
                 document.getElementById('url-results').style.display = 'block';
                 
                 // 检测每个网址
-                urls.forEach(url => {
+                for (const url of urls) {
                     // 确保网址有协议前缀
                     let finalUrl = url.trim();
                     if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
@@ -985,38 +985,58 @@ https://www.github.com
                     resultsContainer.appendChild(resultItem);
                     
                     // 检测网址
-                    checkUrlStatus(finalUrl, resultItem);
-                });
+                    await checkUrlStatus(finalUrl, resultItem);
+                }
             });
             
-            // 检测网址状态和速度
-            function checkUrlStatus(url, resultItem) {
+            // 改进的网址状态检测函数
+            async function checkUrlStatus(url, resultItem) {
                 const startTime = new Date().getTime();
                 const statusElement = resultItem.querySelector('.url-status');
                 const speedElement = resultItem.querySelector('.url-speed');
                 
-                // 使用fetch API检测网址
-                fetch(url, {
-                    method: 'HEAD', // 只请求头部信息，减少数据传输
-                    mode: 'no-cors', // 避免CORS问题
-                    cache: 'no-store' // 避免缓存
-                })
-                .then(response => {
+                try {
+                    // 使用fetch API检测网址
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'no-cors',
+                        cache: 'no-store',
+                        signal: controller.signal
+                    }).finally(() => clearTimeout(timeoutId));
+                    
                     const endTime = new Date().getTime();
                     const duration = endTime - startTime;
                     
-                    statusElement.textContent = '可访问 (状态: ' + (response.status || '200') + ')';
-                    statusElement.className = 'url-status status-success';
-                    speedElement.textContent = `响应时间: ${duration}ms`;
-                })
-                .catch(error => {
+                    // 检查响应状态
+                    if (response.ok || response.status === 0) { // status 0 可能是CORS问题，但页面可以加载
+                        statusElement.textContent = '可访问 (状态: ' + (response.status || '200') + ')';
+                        statusElement.className = 'url-status status-success';
+                        speedElement.textContent = `响应时间: ${duration}ms`;
+                    } else {
+                        statusElement.textContent = `不可访问 (状态: ${response.status})`;
+                        statusElement.className = 'url-status status-error';
+                        speedElement.textContent = `检测耗时: ${duration}ms`;
+                    }
+                } catch (error) {
                     const endTime = new Date().getTime();
                     const duration = endTime - startTime;
                     
-                    statusElement.textContent = '不可访问';
+                    let errorMessage = '不可访问';
+                    if (error.name === 'AbortError') {
+                        errorMessage = '请求超时 (10秒)';
+                    } else if (error.message.includes('Failed to fetch')) {
+                        errorMessage = '网络错误';
+                    } else if (error.message.includes('CORS')) {
+                        errorMessage = '可访问 (CORS限制)';
+                    }
+                    
+                    statusElement.textContent = errorMessage;
                     statusElement.className = 'url-status status-error';
                     speedElement.textContent = `检测耗时: ${duration}ms`;
-                });
+                }
             }
 
             // 网址检测打开功能
