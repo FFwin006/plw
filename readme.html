@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多功能工具合集 - 功能说明</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        .home-link {
+            display: block;
+            margin-bottom: 20px;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .home-link:hover {
+            text-decoration: underline;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            line-height: 1.3;
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .feature-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .feature-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .method {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .reliability {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .security {
+            color: #9b59b6;
+            font-weight: bold;
+        }
+        .note {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 30px;
+            border-left: 4px solid #ffc107;
+        }
+        @media (max-width: 768px) {
+            table {
+                font-size: 14px;
+            }
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="https://ffwin006.github.io/openurl/" class="home-link">返回主页</a>
+        
+        <h1>多功能工具合集<br>功能说明</h1>
+        
+        <div class="feature-box">
+            <div class="feature-title">1. 批量打开网址</div>
+            <p><span class="method">设计方法：</span>使用 window.open() 在新标签页逐个打开网址，自动补全 https:// 协议，限制最多30个网址</p>
+            <p><span class="reliability">可靠性：</span>每个网址独立打开，避免链式失败，检测网址有效性（格式校验）</p>
+            <p><span class="security">安全性：</span>仅在前端执行，不存储或上传网址，依赖浏览器安全策略防止恶意弹窗</p>
+        </div>
+        
+        <div class="feature-box">
+            <div class="feature-title">2. 检测网址</div>
+            <p><span class="method">设计方法：</span>使用 fetch() 发送 HEAD/GET 请求（no-cors 模式），设置10秒超时</p>
+            <p><span class="reliability">可靠性：</span>异步检测不影响页面交互，显示响应时间、HTTP状态码</p>
+            <p><span class="security">安全性：</span>不跨域读取内容仅检测可访问性，不会执行目标网页的JS防止XSS攻击</p>
+        </div>
+        
+        <div class="feature-box">
+            <div class="feature-title">3. IP地址检测</div>
+            <p><span class="method">设计方法：</span>调用多个免费IP API（ipapi.co、ipinfo.io等），自动回退机制</p>
+            <p><span class="reliability">可靠性：</span>支持IPv4/IPv6，返回国家、ISP、地理位置，内置缓存避免重复查询</p>
+            <p><span class="security">安全性：</span>仅查询公开IP数据不涉及敏感信息，所有请求走HTTPS防止中间人攻击</p>
+        </div>
+        
+        <div class="feature-box">
+            <div class="feature-title">4. 网址检测打开</div>
+            <p><span class="method">设计方法：</span>使用iframe逐个加载网页，10秒自动切换，记录加载状态</p>
+            <p><span class="reliability">可靠性：</span>显示加载进度（成功/失败/超时），可手动暂停/继续/重新加载</p>
+            <p><span class="security">安全性：</span>沙盒隔离防止恶意网页影响主页面，不存储检测记录仅临时展示</p>
+        </div>
+        
+        <h2>功能对比总结</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>功能</th>
+                    <th>方法</th>
+                    <th>可靠性</th>
+                    <th>安全性</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>批量打开网址</td>
+                    <td>window.open()</td>
+                    <td>限制30个防止卡死</td>
+                    <td>仅前端执行，不存储</td>
+                </tr>
+                <tr>
+                    <td>检测网址</td>
+                    <td>fetch() + 超时</td>
+                    <td>异步检测，显示状态码</td>
+                    <td>no-cors避免跨域风险</td>
+                </tr>
+                <tr>
+                    <td>IP地址检测</td>
+                    <td>多API回退</td>
+                    <td>缓存 + 自动切换API</td>
+                    <td>HTTPS加密请求</td>
+                </tr>
+                <tr>
+                    <td>网址检测打开</td>
+                    <td>iframe + 轮询</td>
+                    <td>10秒超时，可暂停</td>
+                    <td>沙盒隔离，防XSS</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="note">
+            <strong>✅ 适合用途：</strong>临时检测、批量操作，不涉及敏感数据<br>
+            <strong>⚠ 注意事项：</strong>
+            <ul>
+                <li>部分功能依赖浏览器弹窗权限，需允许网站打开新标签页</li>
+                <li>使用企业网络或VPN时，IP检测结果可能不准确</li>
+                <li>某些网站可能有反爬虫机制，可能导致检测失败</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
