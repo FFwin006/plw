@@ -1198,8 +1198,10 @@ https://www.github.com
                         timestamp: formatDateTime(new Date())
                     });
                     
-                    // 立即继续下一个测试
-                    proceedToNextTest();
+                    // 更新进度条
+                    const progress = Math.round(((currentTestIndex + 1) / urlTestList.length) * 100);
+                    document.getElementById('url-test-progress-bar').style.width = `${progress}%`;
+                    document.getElementById('url-test-progress-bar').textContent = `${progress}%`;
                 }, 10000);
                 
                 // 监听iframe加载完成
@@ -1222,8 +1224,8 @@ https://www.github.com
                     document.getElementById('url-test-progress-bar').style.width = `${progress}%`;
                     document.getElementById('url-test-progress-bar').textContent = `${progress}%`;
                     
-                    // 立即继续下一个测试
-                    proceedToNextTest();
+                    // 10秒后继续下一个测试
+                    urlTestTimeout = setTimeout(proceedToNextTest, 10000);
                 };
                 
                 frame.onerror = function() {
@@ -1243,8 +1245,10 @@ https://www.github.com
                         timestamp: formatDateTime(new Date())
                     });
                     
-                    // 立即继续下一个测试
-                    proceedToNextTest();
+                    // 更新进度条
+                    const progress = Math.round(((currentTestIndex + 1) / urlTestList.length) * 100);
+                    document.getElementById('url-test-progress-bar').style.width = `${progress}%`;
+                    document.getElementById('url-test-progress-bar').textContent = `${progress}%`;
                 };
             }
             
