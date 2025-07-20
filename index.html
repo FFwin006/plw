@@ -349,6 +349,14 @@
             color: white;
             margin-top: 10px;
         }
+        .history-url {
+            color: #0066cc;
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .history-url:hover {
+            text-decoration: underline;
+        }
 
         @media (max-width: 768px) {
             .container {
@@ -402,10 +410,10 @@
          .tip-box {
             background-color: #fff8e1;
             border-left: 4px solid #ffc107;
-            padding: 12px;
+            padding: 12px 15px;
             margin-bottom: 20px;
             border-radius: 0 4px 4px 0;
-            font-size: 10px;
+            font-size: 14px;
         }
         
         .tip-box strong {
@@ -499,7 +507,7 @@ https://www.github.com
                     </div>
                      <div class="tip-box">
             <strong>提示：</strong> 当前使用的免费IPAPI地理位置服务可能存在精度限制，(省份/城市）显示的位置信息可能不够准确。
-       <p>需要ip地位准确的城市建议:使用检测到的ip到专业定位服务获取更精确的位置信息：</p>
+       <p>建议:使用检测到的ip到专业定位服务获取更精确的位置信息：</p>
     </div>
                 </div>
             </div>
@@ -1189,6 +1197,11 @@ https://www.github.com
                         message: errorMsg,
                         timestamp: formatDateTime(new Date())
                     });
+                    
+                    // 更新进度条
+                    const progress = Math.round(((currentTestIndex + 1) / urlTestList.length) * 100);
+                    document.getElementById('url-test-progress-bar').style.width = `${progress}%`;
+                    document.getElementById('url-test-progress-bar').textContent = `${progress}%`;
                 }, 10000);
                 
                 // 监听iframe加载完成
@@ -1205,6 +1218,11 @@ https://www.github.com
                         message: '页面加载成功',
                         timestamp: formatDateTime(new Date())
                     });
+                    
+                    // 更新进度条
+                    const progress = Math.round(((currentTestIndex + 1) / urlTestList.length) * 100);
+                    document.getElementById('url-test-progress-bar').style.width = `${progress}%`;
+                    document.getElementById('url-test-progress-bar').textContent = `${progress}%`;
                     
                     // 10秒后继续下一个测试
                     urlTestTimeout = setTimeout(proceedToNextTest, 10000);
@@ -1226,6 +1244,11 @@ https://www.github.com
                         message: errorMsg,
                         timestamp: formatDateTime(new Date())
                     });
+                    
+                    // 更新进度条
+                    const progress = Math.round(((currentTestIndex + 1) / urlTestList.length) * 100);
+                    document.getElementById('url-test-progress-bar').style.width = `${progress}%`;
+                    document.getElementById('url-test-progress-bar').textContent = `${progress}%`;
                 };
             }
             
@@ -1265,7 +1288,7 @@ https://www.github.com
                         const statusClass = item.status === '成功' ? 'status-success' : 'status-error';
                         
                         historyItem.innerHTML = `
-                            <div><strong>#${index + 1}</strong> ${item.url}</div>
+                            <div><strong>#${index + 1}</strong> <a href="${item.url}" class="history-url" target="_blank">${item.url}</a></div>
                             <div>状态: <span class="url-status ${statusClass}">${item.status}</span></div>
                             <div>时间: ${item.timestamp}</div>
                             ${item.message ? `<div>信息: ${item.message}</div>` : ''}
